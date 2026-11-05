@@ -19,7 +19,7 @@ function Section({polygon,cut,height}:{polygon:Point[];cut:string;height:number}
  </svg><p>{no?'이 위치에는 단면이 없습니다':cut==='vertical'?'원래 도형 + 축 반대쪽의 대칭 영역':intervals.length>1?`${intervals.length}개의 분리된 고리 영역`:intervals[0]?.[0]>.001?'가운데가 비어 있는 고리 모양':'속이 채워진 원 모양'}</p></div>;
 }
 function App(){
- const [draft,setDraft]=useState<Draft>(()=>fromPolygon(examples.cylinder)),[history,setHistory]=useState<Draft[]>([]),[revision,setRevision]=useState(0),[tool,setTool]=useState<Tool>('line');
+ const [draft,setDraft]=useState<Draft>(()=>fromPolygon(examples.cylinder)),[history,setHistory]=useState<Draft[]>([]),[revision,setRevision]=useState(0),[tool,setTool]=useState<Tool>('move');
  const resolved=useMemo(()=>resolveDraft(draft),[draft]),valid=resolved.closed&&!resolved.error,polygon=resolved.polygon,isOpenArc=!!draft.circle&&!resolved.closed;
  const [angle,setAngle]=useState(0),[,setInteraction]=useState<'rotate'|'view'|null>(null),[view,setView]=useState('solid'),[viewTick,setViewTick]=useState(0),[zoom,setZoom]=useState(1),[trails,setTrails]=useState(true),[original,setOriginal]=useState(true),[selected,setSelected]=useState(-1);
  const [cutEnabled,setCutEnabled]=useState(false),[cut,setCut]=useState<'vertical'|'horizontal'>('vertical'),[cutAngle,setCutAngle]=useState(0),[height,setHeight]=useState(0),[hideHalf,setHideHalf]=useState(true),[planeVisible,setPlaneVisible]=useState(true),[toast,setToast]=useState(''),[example,setExample]=useState('cylinder'),[editorExpanded,setEditorExpanded]=useState(false);
@@ -28,8 +28,8 @@ function App(){
  function message(m:string){setToast(m);if(toastTimer.current)clearTimeout(toastTimer.current);toastTimer.current=setTimeout(()=>setToast(''),3500);}
  function checkpoint(){setHistory(h=>[...h.slice(-49),structuredClone(draft)]);}
  function resetExperiment(){setAngle(0);setCutEnabled(false);setSelected(-1);setHeight(0);setCutAngle(0);setHideHalf(true);setPlaneVisible(true);}
- function change(d:Draft){setDraft(d);resetExperiment();setExample('');}
- function replace(d:Draft,name=''){checkpoint();change(d);setRevision(v=>v+1);setExample(name);setView('solid');setZoom(1);setViewTick(v=>v+1);}
+ function change(d:Draft){const r=resolveDraft(d);if(r.closed&&!r.error)setTool('move');setDraft(d);resetExperiment();setExample('');}
+ function replace(d:Draft,name=''){checkpoint();change(d);setTool(d.points.length?'move':'line');setRevision(v=>v+1);setExample(name);setView('solid');setZoom(1);setViewTick(v=>v+1);}
  function undo(){if(!history.length)return;setDraft(history[history.length-1]);setHistory(h=>h.slice(0,-1));resetExperiment();setRevision(v=>v+1);setExample('');}
  function rotate(a:number){setCutEnabled(false);setAngle(Math.round(Math.max(0,Math.min(360,a))*10)/10);}
  function chooseView(v:string){setView(v);setViewTick(n=>n+1);}
@@ -38,7 +38,7 @@ function App(){
  function restoreCut(){setCutEnabled(false);setView('solid');setViewTick(v=>v+1);}
  const minY=polygon.length?Math.min(...polygon.map(p=>p.y)):-3,maxY=polygon.length?Math.max(...polygon.map(p=>p.y)):3;
  const drawTools=()=>(<div className="draw-tools">{([{id:'point',label:'점',icon:Dot},{id:'line',label:'선분',icon:Link2},{id:'arc',label:'호·반원',icon:CircleDashed},{id:'move',label:'이동',icon:Move},{id:'erase',label:'지우개',icon:Eraser}] as const).map(t=><button key={t.id} onClick={()=>setTool(t.id)} className={tool===t.id?'selected':''} aria-pressed={tool===t.id}><t.icon size={19}/>{t.label}</button>)}</div>);
- const editorProps={draft,tool,valid,closed:resolved.closed,revision,onChange:change,onCheckpoint:checkpoint,onMessage:message};
+ const editorProps={draft,tool,valid,closed:resolved.closed,revision,onChange:change,onCheckpoint:checkpoint,onMessage:message,onComplete:()=>setTool('move')};
  const viewButtons=[{id:'solid',label:'입체',icon:Box},{id:'front',label:'앞',icon:ScanLine},{id:'top',label:'위',icon:Layers},{id:'free',label:'자유',icon:Orbit}];
  return <div className="studio-shell">
   <header className="studio-header"><div className="brand"><span className="brand-icon"><Orbit size={20}/></span><div><strong>회전 실험실</strong></div></div></header>
