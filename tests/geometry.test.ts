@@ -1,0 +1,20 @@
+import assert from 'node:assert/strict';
+import {examples,fromCircle,circleRadius,fromPolygon,resolveDraft,polygonError,radialIntervals,sweepVertices,rotated,area} from '../src/geometry.ts';
+let passed=0;
+function test(name:string,fn:()=>void){fn();passed++;console.log('✓ '+name);}
+const close=(a:number,b:number,tol=1e-6)=>assert.ok(Math.abs(a-b)<tol,`${a} != ${b}`);
+test('세 예제는 유효한 닫힌 다각형',()=>{for(const p of Object.values(examples)){const r=resolveDraft(fromPolygon(p));assert.ok(r.closed);assert.equal(r.error,'');}});
+test('90° 회전은 양의 X, 음의 Z 사분면만 채운다',()=>{const v=sweepVertices(examples.cylinder,90);for(let i=0;i<v.length;i+=3){assert.ok(v[i]>=-1e-8);assert.ok(v[i+2]<=1e-8);}assert.ok(v.includes(-3));});
+test('되감기하면 표면 수와 각도 범위도 줄어든다',()=>{assert.ok(sweepVertices(examples.cylinder,180).length>sweepVertices(examples.cylinder,90).length);assert.equal(sweepVertices(examples.cylinder,0).length,0);});
+test('360° 원기둥은 반지름 3, 원뿔 꼭짓점은 축 위에 있다',()=>{const v=sweepVertices(examples.cylinder,360);for(let i=0;i<v.length;i+=3)assert.ok(Math.hypot(v[i],v[i+2])<3.000001);const top=examples.cone[2];for(let a=0;a<360;a+=30){const q=rotated(top,a*Math.PI/180);close(q[0],0);close(q[2],0);}});
+test('빈 입체의 회전 표면과 가로 단면은 내부 반지름을 유지한다',()=>{const v=sweepVertices(examples.tube,360);for(let i=0;i<v.length;i+=3)assert.ok(Math.hypot(v[i],v[i+2])>1.499999);assert.deepEqual(radialIntervals(examples.tube,0),[[1.5,3.5]]);});
+test('원뿔의 높이가 올라갈수록 원 단면의 반지름이 줄어든다',()=>{close(radialIntervals(examples.cone,-1.5)[0][1],2.4);close(radialIntervals(examples.cone,0)[0][1],1.5);close(radialIntervals(examples.cone,1.5)[0][1],.6);});
+test('세로 단면은 원래 도형과 반대쪽 대칭 영역을 만든다',()=>{const p=examples.tube;for(const q of p){const a=rotated(q,0),b=rotated(q,Math.PI);close(a[0],-b[0]);close(a[1],b[1]);}close(Math.abs(area(p)),Math.abs(area(p.map(v=>({x:-v.x,y:v.y})))));});
+test('오목한 다각형의 가로 단면은 여러 고리로 나뉜다',()=>{const p=[{x:1,y:-2},{x:4,y:-2},{x:4,y:2},{x:3,y:2},{x:3,y:-1},{x:2,y:-1},{x:2,y:2},{x:1,y:2}];assert.equal(polygonError(p),'');assert.deepEqual(radialIntervals(p,0),[[1,2],[3,4]]);assert.deepEqual(radialIntervals(p,-1.5),[[1,4]]);});
+test('입체와 만나지 않는 높이는 빈 단면',()=>{assert.deepEqual(radialIntervals(examples.tube,4),[]);assert.deepEqual(radialIntervals(examples.cone,-4),[]);});
+test('교차·넓이 0·축 반대편·겹침을 제한한다',()=>{for(const p of [[{x:0,y:0},{x:2,y:2},{x:0,y:2},{x:2,y:0}],[{x:0,y:0},{x:1,y:0},{x:2,y:0}],[{x:-1,y:0},{x:2,y:0},{x:0,y:2}],[{x:0,y:0},{x:2,y:0},{x:1,y:0},{x:1,y:2}]])assert.ok(polygonError(p));});
+test('열린 연결·떨어진 점은 회전 불가',()=>{const d=fromPolygon(examples.cylinder);d.edges.pop();assert.ok(resolveDraft(d).error);d.points.push({x:5,y:5});assert.ok(resolveDraft(d).error);});
+test('원은 중심·반지름을 보존하고 유효한 회전 영역이 된다',()=>{const d=fromCircle({x:3,y:0},1.5);assert.deepEqual(d.circle,{center:{x:3,y:0},radius:1.5});assert.equal(resolveDraft(d).error,'');close(area(d.points),Math.PI*2.25,.006);});
+test('원의 회전은 중심 높이에서 고리, 위아래에서 좁아지는 단면을 만든다',()=>{const d=fromCircle({x:3,y:0},1.5);const mid=radialIntervals(d.points,0)[0],upper=radialIntervals(d.points,1)[0];close(mid[0],1.5);close(mid[1],4.5);assert.ok(upper[0]>mid[0]&&upper[1]<mid[1]);assert.deepEqual(radialIntervals(d.points,2),[]);const v=sweepVertices(d.points,90);for(let i=0;i<v.length;i+=3){assert.ok(v[i]>=-1e-8);assert.ok(v[i+2]<=1e-8);}});
+test('원 반지름 스냅·축 경계 제한과 축에 닿는 원',()=>{assert.equal(circleRadius({x:1,y:0},{x:5,y:0}),1);assert.equal(circleRadius({x:3,y:0},{x:4.2,y:0}),1);assert.equal(circleRadius({x:3,y:5},{x:5,y:5}),1);assert.equal(resolveDraft(fromCircle({x:1,y:0},1)).error,'');assert.throws(()=>fromCircle({x:1,y:0},2));});
+console.log(`\n${passed}개 기하 검증 통과`);

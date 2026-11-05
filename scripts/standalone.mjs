@@ -1,0 +1,10 @@
+import {readFile,writeFile,copyFile} from 'node:fs/promises';
+const html=await readFile('dist/index.html','utf8');
+const jsPath=html.match(/<script[^>]+src="([^"]+)"[^>]*><\/script>/)?.[1];
+const cssPath=html.match(/<link[^>]+href="([^"]+\.css)"[^>]*>/)?.[1];
+if(!jsPath||!cssPath)throw new Error('빌드 파일을 찾을 수 없습니다.');
+const js=await readFile('dist'+jsPath,'utf8'),css=await readFile('dist'+cssPath,'utf8');
+const out=html.replace(/<script[^>]+src="[^"]+"[^>]*><\/script>/,()=>'<script type="module">'+js.replace(/<\/script/gi,'<\\/script')+'</script>').replace(/<link[^>]+href="[^"]+\.css"[^>]*>/,()=>'<style>'+css+'</style>');
+await writeFile('dist/index.html',out);
+await copyFile('dist/index.html','../회전실험실.html');
+console.log('독립 실행 HTML 생성: ../회전실험실.html');

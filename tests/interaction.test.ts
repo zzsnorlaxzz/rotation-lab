@@ -1,0 +1,14 @@
+import assert from 'node:assert/strict';
+import {dragTarget,draggedAngle} from '../src/interaction.ts';
+const dots=[{x:100,y:100},{x:250,y:140}];
+assert.equal(dragTarget(1,{x:110,y:105},dots),'rotate');
+assert.equal(dragTarget(2,{x:250,y:140},dots),'rotate');
+assert.equal(dragTarget(1,{x:170,y:170},dots),'view');
+assert.equal(dragTarget(2,{x:170,y:170},dots),'view');
+assert.equal(dragTarget(3,{x:100,y:100},dots),'view');
+assert.equal(dragTarget(1,{x:100,y:100},[]),'view');
+assert.equal(draggedAngle(90,150),180);
+assert.equal(draggedAngle(180,-150),90);
+assert.equal(draggedAngle(0,-100),0);
+assert.equal(draggedAngle(360,100),360);
+console.log('✓ 주황색 점과 빈 공간 구분, 두 관찰 단계, 절단 단계, 되감기 및 각도 제한 검사 통과');
