@@ -14,12 +14,12 @@ export function fromCircle(center:Point,radius:number):Draft {
   const points=Array.from({length:96},(_,i)=>{const t=i/96*Math.PI*2;return {x:Math.max(0,center.x+radius*Math.cos(t)),y:center.y+radius*Math.sin(t)};});
   return {...fromPolygon(points),circle:{center:{...center},radius}};
 }
-/** A right-facing circular arc closed by its chord, so the swept region is explicit. */
+/** An open circular arc: no chord, radii, or filled region is added. */
 export function fromArc(center:Point,radius:number,sweepDegrees=180,startDegrees=-sweepDegrees/2):Draft {
   if(!Number.isFinite(radius)||radius<=0||center.x<0||!Number.isFinite(sweepDegrees)||sweepDegrees<30||sweepDegrees>180)throw new Error('호의 각도는 30°~180°, 반지름은 0보다 커야 합니다.');
   if(!Number.isFinite(startDegrees)||startDegrees< -90-1e-8||startDegrees+sweepDegrees>90+1e-8)throw new Error('호는 회전축 오른쪽 반원 안에 그려 주세요.');
   const points=Array.from({length:97},(_,i)=>{const t=(startDegrees+i/96*sweepDegrees)*Math.PI/180;const x=center.x+radius*Math.cos(t);return {x:Math.abs(x)<1e-10?0:x,y:center.y+radius*Math.sin(t)};});
-  return {...fromPolygon(points),circle:{center:{...center},radius,sweepDegrees,startDegrees}};
+  return {points,edges:points.slice(1).map((_,i)=>[i,i+1]),circle:{center:{...center},radius,sweepDegrees,startDegrees}};
 }
 /** Follow the pointer around the fixed circle; the opposite endpoint stays anchored. */
 export function dragArcEndpoint(circle:CircleSpec,p:Point,endpoint:'start'|'end'):CircleSpec {
@@ -49,6 +49,7 @@ export function polygonError(p:Point[]) {
 }
 export function resolveDraft(d:Draft):{polygon:Point[];order:number[];error:string;closed:boolean} {
   const fail=(error:string)=>({polygon:[],order:[],error,closed:false});
+  if(d.circle&&d.edges.length===d.points.length-1)return fail('호는 열린 곡선입니다. 자동으로 닫거나 내부를 채우지 않습니다.');
   if(d.points.length<3)return fail('점을 찍고 선분으로 연결해 도형을 완성하세요.');
   const adj=d.points.map(()=>[] as number[]);
   for(const [a,b] of d.edges){adj[a]?.push(b);adj[b]?.push(a);}
