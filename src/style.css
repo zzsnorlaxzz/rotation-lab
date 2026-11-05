@@ -12,3 +12,5 @@
 .studio-header{height:42px;gap:12px}.brand{gap:7px}.brand-icon{width:28px;height:28px;border-radius:8px}.brand strong{font-size:17px;letter-spacing:-.4px}.help-button{min-height:30px;padding:3px 7px;font-size:12px}.rotation-dock{padding:8px 18px}.angle-value{min-width:45px;text-align:right;font-size:16px;font-variant-numeric:tabular-nums;color:#347a73}.angle-row{min-height:32px}.angle-row>input{min-height:32px}.studio-shell{padding-bottom:12px}
 
 .studio-header{height:34px}.brand-icon{width:24px;height:24px}.brand strong{font-size:15px}.view-toolbar{padding:7px 12px}.legend{padding-block:7px}
+
+.editor-modal{width:98vw;max-width:98vw;height:98dvh;max-height:98dvh;padding:12px;gap:8px;border-radius:10px}.editor-modal-header h2{font-size:18px}.editor-modal-header p{font-size:12px}.editor-modal-header button{min-height:38px}.editor-modal-tools .draw-tools button,.editor-modal-tools>button{min-height:38px}.editor-modal-tip{font-size:12px}
