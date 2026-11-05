@@ -12,3 +12,4 @@
 .drag-instructions{padding:14px;background:#f3f7f5;border:1px solid #dce8e2;border-radius:9px;margin-bottom:22px}.drag-instructions p{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:12px;color:#7c9293;margin-top:10px}.drag-instructions strong{color:#547873;font-weight:500}.orange-handle-dot{height:13px;width:13px;border-radius:50%;background:#e77c3e;border:2px solid #fff;box-shadow:0 0 0 1px #edc0a3;display:inline-block;flex-shrink:0}
 
 .arc-controls{padding:14px;margin-top:14px;background:#fcf6ef;border:1px solid #eadbcd;border-radius:8px}.arc-controls label{display:flex;justify-content:space-between;font-size:13px;margin-bottom:14px}.arc-controls input{width:100%;accent-color:#cf794d}.arc-controls>div{display:flex;gap:8px;margin:12px 0}.arc-controls button{flex:1;font-size:12px}.arc-controls p{font-size:12px;color:#9c826d}
+.editor{user-select:none;-webkit-user-select:none}
