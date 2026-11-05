@@ -1,7 +1,7 @@
 import {useEffect,useRef,useState} from 'react';
 import * as THREE from 'three';
 import {radialIntervals,rotated,sweepVertices,type Point} from './geometry';
-export type SceneProps={polygon:Point[];curvePoints?:Point[];rounded?:boolean;angle:number;stage:number;onInteraction:(kind:'rotate'|'view'|null)=>void;view:string;viewTick:number;zoom:number;trails:boolean;original:boolean;selected:number;cut:'vertical'|'horizontal';cutAngle:number;height:number;hideHalf:boolean;planeVisible:boolean;onFree:()=>void;};
+export type SceneProps={polygon:Point[];curvePoints?:Point[];curveEdges?:[number,number][];rounded?:boolean;angle:number;stage:number;onInteraction:(kind:'rotate'|'view'|null)=>void;view:string;viewTick:number;zoom:number;trails:boolean;original:boolean;selected:number;cut:'vertical'|'horizontal';cutAngle:number;height:number;hideHalf:boolean;planeVisible:boolean;onFree:()=>void;};
 function line(points:THREE.Vector3[],color:number,opacity=1,dashed=false){const g=new THREE.BufferGeometry().setFromPoints(points);const m=dashed?new THREE.LineDashedMaterial({color,transparent:true,opacity,dashSize:.12,gapSize:.09}):new THREE.LineBasicMaterial({color,transparent:opacity<1,opacity});const l=new THREE.Line(g,m);if(dashed)l.computeLineDistances();return l;}
 function profile(p:Point[],theta:number,color:number,opacity:number,fill:boolean){const group=new THREE.Group();const verts=p.map(v=>new THREE.Vector3(...rotated(v,theta)));if(verts.length){group.add(line([...verts,verts[0]],color,opacity));if(fill&&p.length>=3){const shape=new THREE.Shape(p.map(v=>new THREE.Vector2(v.x,v.y)));const g=new THREE.ShapeGeometry(shape);g.rotateY(theta);group.add(new THREE.Mesh(g,new THREE.MeshBasicMaterial({color,opacity:opacity*.7,transparent:true,side:THREE.DoubleSide,depthWrite:false})));}}group.traverse(o=>{if(o instanceof THREE.Mesh)o.userData.dragSurface=true;});return group;}
 function face(p:Point[],theta:number,color:number,opacity:number){const g=new THREE.ShapeGeometry(new THREE.Shape(p.map(v=>new THREE.Vector2(v.x,v.y))));g.rotateY(theta);return new THREE.Mesh(g,new THREE.MeshStandardMaterial({color,side:THREE.DoubleSide,transparent:opacity<1,opacity,roughness:.65,depthWrite:opacity>.8}));}
@@ -38,7 +38,7 @@ export default function Scene(props:SceneProps){
  useEffect(()=>{
   const e=engine.current;if(!e)return;dispose(e.root);e.root.clear();const p=props.polygon.length?props.polygon:(props.curvePoints??[]);if(p.length<2)return;
   const bottom=Math.min(...p.map(v=>v.y)),top=Math.max(...p.map(v=>v.y));e.center=(bottom+top)/2;e.fitHalf=Math.max(5.5,Math.max(...p.map(v=>v.x))*1.3,(top-bottom)*.75);e.grid.position.y=bottom-.7;
-  if(!props.polygon.length&&props.curvePoints?.length){e.root.add(line(p.map(v=>new THREE.Vector3(v.x,v.y,0)),0xd7673f));return;}
+  if(!props.polygon.length&&props.curvePoints?.length){for(const [a,b] of props.curveEdges??p.slice(1).map((_,i)=>[i,i+1]))e.root.add(line([p[a],p[b]].map(v=>new THREE.Vector3(v.x,v.y,0)),0xd7673f));return;}
   const t=props.angle*Math.PI/180,cutting=props.stage===3,phi=props.cutAngle*Math.PI/180;
   const clip=props.cut==='vertical'?new THREE.Plane(new THREE.Vector3(-Math.sin(phi),0,-Math.cos(phi)),0):new THREE.Plane(new THREE.Vector3(0,-1,0),props.height);
   const clips=cutting&&props.hideHalf?[clip]:[];
@@ -59,7 +59,7 @@ export default function Scene(props:SceneProps){
    if(props.cut==='vertical'){for(const a of [phi,phi+Math.PI]){const m=face(p,a,accent,.95);m.renderOrder=3;(m.material as THREE.MeshStandardMaterial).polygonOffset=true;(m.material as THREE.MeshStandardMaterial).polygonOffsetFactor=-3;e.root.add(m);const outline=profile(p,a,0x9b6a15,1,false);outline.renderOrder=4;e.root.add(outline);}}
    else for(const [inner,outer] of radialIntervals(p,props.height)){const section=new THREE.Mesh(sectionRing(inner,outer,props.height),new THREE.MeshBasicMaterial({color:accent,side:THREE.DoubleSide,polygonOffset:true,polygonOffsetFactor:-4}));section.renderOrder=3;e.root.add(section);for(const r of [inner,outer])if(r>1e-6){const a=[];for(let i=0;i<=128;i++)a.push(new THREE.Vector3(r*Math.cos(i/128*Math.PI*2),props.height,r*Math.sin(i/128*Math.PI*2)));const l=line(a,0x9b6a15);l.renderOrder=4;e.root.add(l);}}
   }
- },[props.polygon,props.curvePoints,props.rounded,props.angle,props.stage,props.original,props.trails,props.selected,props.cut,props.cutAngle,props.height,props.hideHalf,props.planeVisible]);
+ },[props.polygon,props.curvePoints,props.curveEdges,props.rounded,props.angle,props.stage,props.original,props.trails,props.selected,props.cut,props.cutAngle,props.height,props.hideHalf,props.planeVisible]);
  return <div className="three-host" ref={host} aria-label="회전체 3차원 실험 공간">{props.stage>0&&<svg className="three-orientation" viewBox="0 0 92 80" aria-label="카메라 방향에 따른 X Y Z축"><circle cx="46" cy="41" r="3" fill="#9aabad"/>{['X','Y','Z'].map((label,i)=><g key={label} data-axis={i} stroke={['#cb8b6c','#57957e','#759aa9'][i]}><line x1="46" y1="41" x2="46" y2="41" strokeWidth="1.5"/><text x="46" y="41" textAnchor="middle" stroke="none" fill={['#cb8b6c','#57957e','#759aa9'][i]} fontSize="10">{label}</text></g>)}</svg>}{failure&&<div className="webgl-error">{failure}</div>}</div>;
 }
 

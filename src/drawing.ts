@@ -15,5 +15,5 @@ export function lineClick(draft:Draft,pending:number|null,p:Point):{draft:Draft;
   if(draft.edges.some(([a,b])=>a===pending&&b===index||a===index&&b===pending))return {draft,pending:null};
   if([pending,index].some(n=>draft.edges.filter(e=>e.includes(n)).length>=2))return {draft,pending:null,error:'한 점에는 선분 두 개까지 연결할 수 있습니다.'};
  }
- return {draft:{points:i<0?[...draft.points,p]:draft.points,edges:pending===null?draft.edges:[...draft.edges,[pending,index]]},pending:pending===null?index:null};
+ return {draft:{...draft,points:i<0?[...draft.points,p]:draft.points,edges:pending===null?draft.edges:[...draft.edges,[pending,index]]},pending:pending===null?index:null};
 }

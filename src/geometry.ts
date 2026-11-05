@@ -21,6 +21,15 @@ export function fromArc(center:Point,radius:number,sweepDegrees=180,startDegrees
   const points=Array.from({length:97},(_,i)=>{const t=(startDegrees+i/96*sweepDegrees)*Math.PI/180;const x=center.x+radius*Math.cos(t);return {x:Math.abs(x)<1e-10?0:x,y:center.y+radius*Math.sin(t)};});
   return {points,edges:points.slice(1).map((_,i)=>[i,i+1]),circle:{center:{...center},radius,sweepDegrees,startDegrees}};
 }
+/** Replace arc samples while retaining straight segments attached to its endpoints. */
+export function updateArc(draft:Draft,circle:CircleSpec):Draft {
+ const arc=fromArc(circle.center,circle.radius,circle.sweepDegrees??180,circle.startDegrees);
+ if(!draft.circle)return arc;
+ const old=draft.circle.center;
+ return {...draft,circle:arc.circle,points:[...arc.points,...draft.points.slice(97).map(p=>Math.hypot(p.x-old.x,p.y-old.y)<1e-8?{...circle.center}:p)]};
+}
+export function editablePointIndices(draft:Draft){return draft.points.map((_,i)=>i).filter(i=>!draft.circle||i===0||i>=96);}
+export function removeArc(draft:Draft):Draft {return {points:draft.points.slice(97),edges:draft.edges.filter(([a,b])=>a>=97&&b>=97).map(([a,b])=>[a-97,b-97])};}
 /** Follow the pointer around the fixed circle; the opposite endpoint stays anchored. */
 export function dragArcEndpoint(circle:CircleSpec,p:Point,endpoint:'start'|'end'):CircleSpec {
   const start=circle.startDegrees??-(circle.sweepDegrees??180)/2,end=start+(circle.sweepDegrees??180);
