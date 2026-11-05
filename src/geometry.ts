@@ -1,5 +1,5 @@
 export type Point = { x: number; y: number };
-export type CircleSpec = { center: Point; radius: number; sweepDegrees?: number };
+export type CircleSpec = { center: Point; radius: number; sweepDegrees?: number; startDegrees?: number };
 export type Draft = { points: Point[]; edges: [number, number][]; circle?: CircleSpec };
 export const examples: Record<string, Point[]> = {
   cylinder: [{x:0,y:-2},{x:3,y:-2},{x:3,y:2},{x:0,y:2}],
@@ -15,10 +15,20 @@ export function fromCircle(center:Point,radius:number):Draft {
   return {...fromPolygon(points),circle:{center:{...center},radius}};
 }
 /** A right-facing circular arc closed by its chord, so the swept region is explicit. */
-export function fromArc(center:Point,radius:number,sweepDegrees=180):Draft {
+export function fromArc(center:Point,radius:number,sweepDegrees=180,startDegrees=-sweepDegrees/2):Draft {
   if(!Number.isFinite(radius)||radius<=0||center.x<0||!Number.isFinite(sweepDegrees)||sweepDegrees<30||sweepDegrees>180)throw new Error('호의 각도는 30°~180°, 반지름은 0보다 커야 합니다.');
-  const points=Array.from({length:97},(_,i)=>{const t=(i/96-.5)*sweepDegrees*Math.PI/180;const x=center.x+radius*Math.cos(t);return {x:Math.abs(x)<1e-10?0:x,y:center.y+radius*Math.sin(t)};});
-  return {...fromPolygon(points),circle:{center:{...center},radius,sweepDegrees}};
+  if(!Number.isFinite(startDegrees)||startDegrees< -90-1e-8||startDegrees+sweepDegrees>90+1e-8)throw new Error('호는 회전축 오른쪽 반원 안에 그려 주세요.');
+  const points=Array.from({length:97},(_,i)=>{const t=(startDegrees+i/96*sweepDegrees)*Math.PI/180;const x=center.x+radius*Math.cos(t);return {x:Math.abs(x)<1e-10?0:x,y:center.y+radius*Math.sin(t)};});
+  return {...fromPolygon(points),circle:{center:{...center},radius,sweepDegrees,startDegrees}};
+}
+/** Follow the pointer around the fixed circle; the opposite endpoint stays anchored. */
+export function dragArcEndpoint(circle:CircleSpec,p:Point,endpoint:'start'|'end'):CircleSpec {
+  const start=circle.startDegrees??-(circle.sweepDegrees??180)/2,end=start+(circle.sweepDegrees??180);
+  if(Math.hypot(p.x-circle.center.x,p.y-circle.center.y)<1e-8)return circle;
+  const pointerAngle=Math.max(-90,Math.min(90,Math.atan2(p.y-circle.center.y,p.x-circle.center.x)*180/Math.PI));
+  const nextStart=endpoint==='start'?Math.max(-90,Math.min(end-30,pointerAngle)):start;
+  const nextEnd=endpoint==='end'?Math.max(start+30,Math.min(90,pointerAngle)):end;
+  return {...circle,startDegrees:nextStart,sweepDegrees:nextEnd-nextStart};
 }
 export function arcRadius(center:Point,p:Point){return Math.max(0,Math.min(8-center.x,6-Math.abs(center.y),Math.round(Math.hypot(p.x-center.x,p.y-center.y)*2)/2));}
 const cross=(a:Point,b:Point,c:Point)=>(b.x-a.x)*(c.y-a.y)-(b.y-a.y)*(c.x-a.x);

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {examples,fromArc,arcRadius,fromCircle,circleRadius,fromPolygon,resolveDraft,polygonError,radialIntervals,sweepVertices,rotated,area} from '../src/geometry.ts';
+import {examples,dragArcEndpoint,fromArc,arcRadius,fromCircle,circleRadius,fromPolygon,resolveDraft,polygonError,radialIntervals,sweepVertices,rotated,area} from '../src/geometry.ts';
 let passed=0;
 function test(name:string,fn:()=>void){fn();passed++;console.log('✓ '+name);}
 const close=(a:number,b:number,tol=1e-6)=>assert.ok(Math.abs(a-b)<tol,`${a} != ${b}`);
@@ -20,4 +20,7 @@ test('원 반지름 스냅·축 경계 제한과 축에 닿는 원',()=>{assert.
 test('축 위 반원의 지름은 축에 놓이고 면적은 반원의 면적이다',()=>{const d=fromArc({x:0,y:0},2);assert.equal(resolveDraft(d).error,'');close(d.points[0].x,0);close(d.points[96].x,0);close(area(d.points),2*Math.PI,.003);assert.equal(d.circle?.sweepDegrees,180);});
 test('반원을 회전하면 구가 되고 높이별 원 단면이 맞는다',()=>{const d=fromArc({x:0,y:0},2);const mid=radialIntervals(d.points,0)[0],upper=radialIntervals(d.points,1)[0];close(mid[0],0);close(mid[1],2);close(upper[1],Math.sqrt(3),.001);for(const angle of [90,360]){const v=sweepVertices(d.points,angle);for(let i=0;i<v.length;i+=3)close(v[i]**2+v[i+1]**2+v[i+2]**2,4);}});
 test('90도 호는 현으로 닫히며 반지름 조절은 축 중심을 허용한다',()=>{const d=fromArc({x:0,y:0},2,90);assert.equal(resolveDraft(d).error,'');close(radialIntervals(d.points,0)[0][0],Math.SQRT2);assert.equal(arcRadius({x:0,y:0},{x:2,y:0}),2);assert.throws(()=>fromArc({x:0,y:0},2,0));assert.throws(()=>fromArc({x:-1,y:0},2,180));});
+test('호 끝점 드래그는 중심·반지름·반대쪽 끝점을 유지한다',()=>{const c=fromArc({x:0,y:0},2).circle!;const d=dragArcEndpoint(c,{x:2,y:0},'end');assert.deepEqual(d.center,c.center);assert.equal(d.radius,2);close(d.startDegrees!,-90);close(d.sweepDegrees!,90);const p=fromArc(d.center,d.radius,d.sweepDegrees,d.startDegrees);assert.equal(resolveDraft(p).error,'');close(p.points[0].y,-2);close(p.points[96].x,2);});
+test('시작점 드래그도 반대쪽 끝점을 고정하고 각도 경계를 지킨다',()=>{const c=fromArc({x:1,y:1},2).circle!;const d=dragArcEndpoint(c,{x:3,y:1},'start');close(d.startDegrees!,0);close(d.sweepDegrees!,90);const min=dragArcEndpoint(c,{x:1,y:-1},'end');close(min.sweepDegrees!,30);const max=dragArcEndpoint(c,{x:-1,y:3},'end');close(max.sweepDegrees!,180);assert.deepEqual(dragArcEndpoint(c,c.center,'end'),c);});
+test('비대칭 호도 회전과 단면 계산에 같은 시작각을 사용한다',()=>{const d=fromArc({x:0,y:0},2,90,-90);assert.equal(d.circle!.startDegrees,-90);assert.equal(resolveDraft(d).error,'');close(area(d.points),Math.PI-2,.001);assert.deepEqual(radialIntervals(d.points,1),[]);assert.ok(radialIntervals(d.points,-1).length===1);});
 console.log(`\n${passed}개 기하 검증 통과`);

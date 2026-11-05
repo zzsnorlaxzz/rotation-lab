@@ -13,3 +13,5 @@
 
 .arc-controls{padding:14px;margin-top:14px;background:#fcf6ef;border:1px solid #eadbcd;border-radius:8px}.arc-controls label{display:flex;justify-content:space-between;font-size:13px;margin-bottom:14px}.arc-controls input{width:100%;accent-color:#cf794d}.arc-controls>div{display:flex;gap:8px;margin:12px 0}.arc-controls button{flex:1;font-size:12px}.arc-controls p{font-size:12px;color:#9c826d}
 .editor{user-select:none;-webkit-user-select:none}
+
+.arc-end-label{font-family:inherit;font-size:12px;fill:#318bac;paint-order:stroke;stroke:#fff;stroke-width:3px}.tool-arc{cursor:crosshair}
