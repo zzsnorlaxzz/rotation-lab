@@ -63,3 +63,4 @@ export default function Scene(props:SceneProps){
  return <div className="three-host" ref={host} aria-label="회전체 3차원 실험 공간">{props.stage>0&&<svg className="three-orientation" viewBox="0 0 92 80" aria-label="카메라 방향에 따른 X Y Z축"><circle cx="46" cy="41" r="3" fill="#9aabad"/>{['X','Y','Z'].map((label,i)=><g key={label} data-axis={i} stroke={['#cb8b6c','#57957e','#759aa9'][i]}><line x1="46" y1="41" x2="46" y2="41" strokeWidth="1.5"/><text x="46" y="41" textAnchor="middle" stroke="none" fill={['#cb8b6c','#57957e','#759aa9'][i]} fontSize="10">{label}</text></g>)}</svg>}{failure&&<div className="webgl-error">{failure}</div>}</div>;
 }
 
+

@@ -1,5 +1,5 @@
 export type Point = { x: number; y: number };
-export type CircleSpec = { center: Point; radius: number };
+export type CircleSpec = { center: Point; radius: number; sweepDegrees?: number };
 export type Draft = { points: Point[]; edges: [number, number][]; circle?: CircleSpec };
 export const examples: Record<string, Point[]> = {
   cylinder: [{x:0,y:-2},{x:3,y:-2},{x:3,y:2},{x:0,y:2}],
@@ -14,6 +14,13 @@ export function fromCircle(center:Point,radius:number):Draft {
   const points=Array.from({length:96},(_,i)=>{const t=i/96*Math.PI*2;return {x:Math.max(0,center.x+radius*Math.cos(t)),y:center.y+radius*Math.sin(t)};});
   return {...fromPolygon(points),circle:{center:{...center},radius}};
 }
+/** A right-facing circular arc closed by its chord, so the swept region is explicit. */
+export function fromArc(center:Point,radius:number,sweepDegrees=180):Draft {
+  if(!Number.isFinite(radius)||radius<=0||center.x<0||!Number.isFinite(sweepDegrees)||sweepDegrees<30||sweepDegrees>180)throw new Error('호의 각도는 30°~180°, 반지름은 0보다 커야 합니다.');
+  const points=Array.from({length:97},(_,i)=>{const t=(i/96-.5)*sweepDegrees*Math.PI/180;const x=center.x+radius*Math.cos(t);return {x:Math.abs(x)<1e-10?0:x,y:center.y+radius*Math.sin(t)};});
+  return {...fromPolygon(points),circle:{center:{...center},radius,sweepDegrees}};
+}
+export function arcRadius(center:Point,p:Point){return Math.max(0,Math.min(8-center.x,6-Math.abs(center.y),Math.round(Math.hypot(p.x-center.x,p.y-center.y)*2)/2));}
 const cross=(a:Point,b:Point,c:Point)=>(b.x-a.x)*(c.y-a.y)-(b.y-a.y)*(c.x-a.x);
 export function area(p:Point[]) { return p.reduce((s,a,i)=>{const b=p[(i+1)%p.length];return s+a.x*b.y-b.x*a.y;},0)/2; }
 function on(a:Point,b:Point,p:Point){return Math.abs(cross(a,b,p))<1e-8 && p.x>=Math.min(a.x,b.x)-1e-8&&p.x<=Math.max(a.x,b.x)+1e-8&&p.y>=Math.min(a.y,b.y)-1e-8&&p.y<=Math.max(a.y,b.y)+1e-8;}
