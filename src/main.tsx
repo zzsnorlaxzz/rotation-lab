@@ -3,11 +3,12 @@ import {createRoot} from 'react-dom/client';
 import {ArrowRight,ArrowLeft,Check,ChevronRight,RotateCcw,Undo2,Trash2,MousePointer2,Dot,Move,Link2,Eraser,Play,Pause,Orbit,Box,ScanLine,Layers,Eye,Plus,Minus,Maximize2,Info,ChevronDown,GraduationCap,CircleDashed} from 'lucide-react';
 import Scene from './Scene';
 import Editor,{type Tool} from './Editor';
-import {examples,fromArc,updateArc,editablePointIndices,fromPolygon,resolveDraft,radialIntervals,type Draft,type Point} from './geometry';
+import {examples,fromArc,fromClosedSemicircle,updateArc,editablePointIndices,fromPolygon,resolveDraft,radialIntervals,type Draft,type Point} from './geometry';
 import './style.css';
 const stages=['도형 그리기','돌려 보기','시점 바꾸기','단면 탐구'];
 const names={cylinder:'원기둥',cone:'원뿔',tube:'가운데가 빈 입체'};
-function ShapeIcon({kind}:{kind:string}){return <svg viewBox="0 0 72 66" aria-hidden="true"><line x1="17" y1="5" x2="17" y2="61" stroke="#a8b7ba" strokeDasharray="3 3"/>{kind==='cone'?<path d="M17 12L54 52H17Z"/>:kind==='tube'?<path d="M30 14H56V52H30Z"/>:<path d="M17 14H54V52H17Z"/>}<path className="swirl" d="M10 58C-3 49 4 43 13 43M10 58l-2-7m2 7-7-1"/></svg>;}
+function PresetIcon({kind}:{kind:string}){return <svg viewBox="0 0 72 66" aria-hidden="true"><line x1="20" y1="4" x2="20" y2="62" stroke="#99adb3" strokeDasharray="3 4" strokeWidth="1.5"/>{kind==='semidisc'?<path d="M20 10A23 23 0 0 1 20 56Z" fill="#f7e6d8" stroke="#cb704b" strokeWidth="3"/>:<path d={kind==='cone'?'M20 12L55 54H20Z':kind==='trapezoid'?'M20 14H40L57 54H20Z':'M20 14H54V54H20Z'} fill="#f7e6d8" stroke="#cb704b" strokeWidth="2.5" strokeLinejoin="round"/>}</svg>;}
+
 function Section({polygon,cut,height}:{polygon:Point[];cut:string;height:number}){
  const intervals=radialIntervals(polygon,height),r=Math.max(4,...polygon.map(p=>p.x)),centerY=(Math.min(...polygon.map(p=>p.y))+Math.max(...polygon.map(p=>p.y)))/2,s=85/Math.max(r,...polygon.map(p=>Math.abs(p.y-centerY)));
  const points=(sign:number)=>polygon.map(p=>`${110+sign*p.x*s},${100-(p.y-centerY)*s}`).join(' ');
@@ -45,7 +46,7 @@ function App(){
   <main className="studio-grid">
    <aside className="sketch-panel" aria-label="평면도형 편집 도구">
     <div className="sketch-title"><h2>평면도형 그리기</h2><button className="expand-editor" aria-label="평면도형 확대해서 그리기" onClick={()=>setEditorExpanded(true)}><Maximize2 size={16}/> 확대</button><span className={valid?'ready':'not-ready'}>{valid?'회전 가능':isOpenArc?'열린 호':'연결 중'}</span></div>
-    <label className="example-picker"><span>예제</span><select aria-label="예제 선택" value={example} onChange={e=>{const k=e.target.value;if(k==='semicircle'){replace(fromArc({x:0,y:0},2.5,180),k);setTool('move');}else if(k==='blank')replace({points:[],edges:[]},k);else if(examples[k])replace(fromPolygon(examples[k]),k);}}><option value="" disabled>직접 그린 도형</option><option value="cylinder">직사각형 → 원기둥</option><option value="cone">삼각형 → 원뿔</option><option value="tube">떨어진 직사각형 → 빈 입체</option><option value="semicircle">반원 호 · 열린 곡선</option><option value="blank">새로 그리기</option></select></label>
+    <label className="example-picker"><span>예제</span><select aria-label="예제 선택" value={example} onChange={e=>{const k=e.target.value;if(k==='semidisc')replace(fromClosedSemicircle({x:0,y:0},2.5),k);else if(k==='semicircle'){replace(fromArc({x:0,y:0},2.5,180),k);setTool('move');}else if(k==='blank')replace({points:[],edges:[]},k);else if(examples[k])replace(fromPolygon(examples[k]),k);}}><option value="" disabled>직접 그린 도형</option><option value="cylinder">직사각형 → 원기둥</option><option value="cone">삼각형 → 원뿔</option><option value="tube">떨어진 직사각형 → 빈 입체</option><option value="semicircle">반원 호 · 열린 곡선</option><option value="semidisc">반원 부채꼴 → 구</option><option value="trapezoid">사다리꼴 → 원뿔대</option><option value="blank">새로 그리기</option></select></label>
     {drawTools()}
     <div className="sketch-canvas">{!editorExpanded?<Editor compact {...editorProps}/>:<div className="sketch-placeholder">확대 편집창에서 그리는 중</div>}</div>
     <div className="edit-actions"><button onClick={undo} disabled={!history.length}><Undo2 size={16}/> 되돌리기</button><button onClick={()=>replace({points:[],edges:[]},'blank')}><Trash2 size={16}/> 초기화</button></div>
@@ -67,7 +68,7 @@ function App(){
     </div>
    </section>
   </main>
-  <dialog ref={editorDialog} className="editor-modal" aria-label="확대 평면도형 편집" onCancel={e=>{e.preventDefault();setEditorExpanded(false);}} onClose={()=>setEditorExpanded(false)}><div className="editor-modal-header"><div><h2>크게 그리기</h2><p>두 점으로 선분 하나 · 정수 좌표에 착 붙여 그리세요.</p></div><button onClick={()=>setEditorExpanded(false)}>완료 · 돌아가기</button></div><div className="editor-modal-tools">{drawTools()}<button disabled={!history.length} onClick={undo}><Undo2 size={16}/> 되돌리기</button><button onClick={()=>replace({points:[],edges:[]},'blank')}><Trash2 size={16}/> 초기화</button></div><div className="editor-modal-canvas">{editorExpanded&&<Editor {...editorProps}/>}</div><p className="editor-modal-tip">호의 A·B 끝점을 선분으로 연결할 수 있습니다. 정수 한 칸 격자 · 반 칸 스냅도 유지됩니다.</p></dialog>
+  <dialog ref={editorDialog} className="editor-modal" aria-label="확대 평면도형 편집" onCancel={e=>{e.preventDefault();setEditorExpanded(false);}} onClose={()=>setEditorExpanded(false)}><div className="editor-modal-header"><div><h2>크게 그리기</h2><p>두 점으로 선분 하나 · 정수 좌표에 착 붙여 그리세요.</p></div><button onClick={()=>setEditorExpanded(false)}>완료 · 돌아가기</button></div><div className="editor-modal-tools">{drawTools()}<button disabled={!history.length} onClick={undo}><Undo2 size={16}/> 되돌리기</button><button onClick={()=>replace({points:[],edges:[]},'blank')}><Trash2 size={16}/> 초기화</button></div><div className="editor-modal-body"><div className="editor-modal-canvas">{editorExpanded&&<Editor {...editorProps}/>}</div><aside className="preset-rail" aria-label="도형 바로 만들기"><h3>도형 바로 만들기</h3><div className="preset-buttons">{[{id:'cylinder',label:'직사각형'},{id:'cone',label:'직각삼각형'},{id:'semidisc',label:'반원'},{id:'trapezoid',label:'사다리꼴'}].map(p=><button key={p.id} aria-label={p.label+' 바로 만들기'} aria-pressed={example===p.id} className={example===p.id?'selected':''} onClick={()=>replace(p.id==='semidisc'?fromClosedSemicircle({x:0,y:0},2.5):fromPolygon(examples[p.id]),p.id)}><PresetIcon kind={p.id}/><strong>{p.label}</strong>{p.id==='semidisc'&&<small>닫힌 부채꼴</small>}</button>)}</div><p>현재 그림을 바꿉니다.<br/>되돌리기로 복원할 수 있어요.</p></aside></div><p className="editor-modal-tip">호의 A·B 끝점을 선분으로 연결할 수 있습니다. 정수 한 칸 격자 · 반 칸 스냅도 유지됩니다.</p></dialog>
  </div>;
 }
 createRoot(document.getElementById('root')!).render(<App/>);

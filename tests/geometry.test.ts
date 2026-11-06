@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
-import {examples,dragArcEndpoint,fromArc,arcRadius,fromCircle,circleRadius,fromPolygon,resolveDraft,polygonError,radialIntervals,sweepVertices,rotated,area} from '../src/geometry.ts';
+import {examples,fromClosedSemicircle,dragArcEndpoint,fromArc,arcRadius,fromCircle,circleRadius,fromPolygon,resolveDraft,polygonError,radialIntervals,sweepVertices,rotated,area} from '../src/geometry.ts';
 let passed=0;
 function test(name:string,fn:()=>void){fn();passed++;console.log('✓ '+name);}
 const close=(a:number,b:number,tol=1e-6)=>assert.ok(Math.abs(a-b)<tol,`${a} != ${b}`);
-test('세 예제는 유효한 닫힌 다각형',()=>{for(const p of Object.values(examples)){const r=resolveDraft(fromPolygon(p));assert.ok(r.closed);assert.equal(r.error,'');}});
+test('기본 예제는 유효한 닫힌 다각형',()=>{for(const p of Object.values(examples)){const r=resolveDraft(fromPolygon(p));assert.ok(r.closed);assert.equal(r.error,'');}});
 test('90° 회전은 양의 X, 음의 Z 사분면만 채운다',()=>{const v=sweepVertices(examples.cylinder,90);for(let i=0;i<v.length;i+=3){assert.ok(v[i]>=-1e-8);assert.ok(v[i+2]<=1e-8);}assert.ok(v.includes(-3));});
 test('되감기하면 표면 수와 각도 범위도 줄어든다',()=>{assert.ok(sweepVertices(examples.cylinder,180).length>sweepVertices(examples.cylinder,90).length);assert.equal(sweepVertices(examples.cylinder,0).length,0);});
 test('360° 원기둥은 반지름 3, 원뿔 꼭짓점은 축 위에 있다',()=>{const v=sweepVertices(examples.cylinder,360);for(let i=0;i<v.length;i+=3)assert.ok(Math.hypot(v[i],v[i+2])<3.000001);const top=examples.cone[2];for(let a=0;a<360;a+=30){const q=rotated(top,a*Math.PI/180);close(q[0],0);close(q[2],0);}});
@@ -23,4 +23,5 @@ test('90도 호도 현 없이 열린 상태이며 반지름은 축 중심을 허
 test('호 끝점 드래그는 중심·반지름·반대쪽 끝점을 유지한다',()=>{const c=fromArc({x:0,y:0},2).circle!;const d=dragArcEndpoint(c,{x:2,y:0},'end');assert.deepEqual(d.center,c.center);assert.equal(d.radius,2);close(d.startDegrees!,-90);close(d.sweepDegrees!,90);const p=fromArc(d.center,d.radius,d.sweepDegrees,d.startDegrees);assert.equal(resolveDraft(p).closed,false);close(p.points[0].y,-2);close(p.points[96].x,2);});
 test('시작점 드래그도 반대쪽 끝점을 고정하고 각도 경계를 지킨다',()=>{const c=fromArc({x:1,y:1},2).circle!;const d=dragArcEndpoint(c,{x:3,y:1},'start');close(d.startDegrees!,0);close(d.sweepDegrees!,90);const min=dragArcEndpoint(c,{x:1,y:-1},'end');close(min.sweepDegrees!,30);const max=dragArcEndpoint(c,{x:-1,y:3},'end');close(max.sweepDegrees!,180);assert.deepEqual(dragArcEndpoint(c,c.center,'end'),c);});
 test('비대칭 호의 시작각과 열린 연결을 보존한다',()=>{const d=fromArc({x:0,y:0},2,90,-90);assert.equal(d.circle!.startDegrees,-90);assert.equal(resolveDraft(d).closed,false);close(d.points[0].y,-2);close(d.points[96].x,2);assert.deepEqual(d.edges[0],[0,1]);assert.deepEqual(d.edges[95],[95,96]);});
+test('반원 바로 만들기는 지름으로 닫힌 영역이며 구의 단면을 만든다',()=>{const d=fromClosedSemicircle({x:0,y:0},2.5),r=resolveDraft(d);assert.equal(r.error,'');assert.equal(r.closed,true);assert.deepEqual(d.edges[96],[96,0]);close(Math.abs(area(r.polygon)),Math.PI*2.5**2/2,.003);close(radialIntervals(r.polygon,0)[0][1],2.5);close(radialIntervals(r.polygon,2)[0][1],1.5,.002);});
 console.log(`\n${passed}개 기하 검증 통과`);

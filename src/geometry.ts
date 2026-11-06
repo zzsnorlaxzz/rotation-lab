@@ -5,6 +5,7 @@ export const examples: Record<string, Point[]> = {
   cylinder: [{x:0,y:-2},{x:3,y:-2},{x:3,y:2},{x:0,y:2}],
   cone: [{x:0,y:-2.5},{x:3,y:-2.5},{x:0,y:2.5}],
   tube: [{x:1.5,y:-2},{x:3.5,y:-2},{x:3.5,y:2},{x:1.5,y:2}],
+  trapezoid: [{x:0,y:-2},{x:4,y:-2},{x:2,y:2},{x:0,y:2}],
 };
 export function fromPolygon(points: Point[]): Draft { return { points:points.map(p=>({...p})),edges:points.map((_,i)=>[i,(i+1)%points.length]) }; }
 export function circleRadius(center:Point,p:Point){const limit=Math.min(center.x,8-center.x,6-Math.abs(center.y));return Math.max(0,Math.min(limit,Math.round(Math.hypot(p.x-center.x,p.y-center.y)*2)/2));}
@@ -21,6 +22,8 @@ export function fromArc(center:Point,radius:number,sweepDegrees=180,startDegrees
   const points=Array.from({length:97},(_,i)=>{const t=(startDegrees+i/96*sweepDegrees)*Math.PI/180;const x=center.x+radius*Math.cos(t);return {x:Math.abs(x)<1e-10?0:x,y:center.y+radius*Math.sin(t)};});
   return {points,edges:points.slice(1).map((_,i)=>[i,i+1]),circle:{center:{...center},radius,sweepDegrees,startDegrees}};
 }
+/** Explicit closed semicircle preset; the arc tool itself remains open. */
+export function fromClosedSemicircle(center:Point,radius:number):Draft {const d=fromArc(center,radius,180);return {...d,edges:[...d.edges,[96,0]]};}
 /** Replace arc samples while retaining straight segments attached to its endpoints. */
 export function updateArc(draft:Draft,circle:CircleSpec):Draft {
  const arc=fromArc(circle.center,circle.radius,circle.sweepDegrees??180,circle.startDegrees);
